@@ -1,0 +1,16 @@
+FROM gcc:4.9
+ 
+COPY ./client/ /client/
+
+COPY ./client/simulated_application/ /client/
+
+COPY ./TCP/ /TCP/
+
+COPY ./serializer/ /serializer/
+ 
+WORKDIR /client
+ 
+RUN g++ -std=c++11 -o client client.cpp ../TCP/clientTCP.cpp ../serializer/serializer.cpp application.cpp -I../TCP/ -I../serializer/ -pthread
+
+# not needed because the command is given from AdvantEDGE
+#CMD ["./client", "10.0.2.15", "31500"]

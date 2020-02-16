@@ -1,0 +1,1 @@
+g++ -std=c++11 master.cpp client.cpp server.cpp node.cpp -o master ../TCP/serverTCP.cpp ../TCP/clientTCP.cpp ../serializer/serializer.cpp -I../TCP/ -I../serializer/ -lboost_system -lcrypto -lssl -lcpprest -pthread

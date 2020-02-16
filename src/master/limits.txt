@@ -1,0 +1,6 @@
+node-1 zone-1 poa-1 1 30000 100000
+node-2 zone-1 poa-2 1 30000 100000
+node-3 zone-1 null 1 90000 100000
+node-4 zone-2 poa-3 1 30000 100000
+node-5 zone-2 poa-4 1 30000 100000
+node-6 zone-2 null 1 90000 100000

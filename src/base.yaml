@@ -1,0 +1,344 @@
+name: base
+deployment:
+    interDomainLatency: 0
+    interDomainLatencyVariation: 0
+    interDomainThroughput: 1000
+    domains:
+        -
+            id: PUBLIC
+            name: PUBLIC
+            type: PUBLIC
+            interZoneLatency: 6
+            interZoneLatencyVariation: 2
+            interZoneThroughput: 1000
+            zones:
+                -
+                    id: PUBLIC-COMMON
+                    name: PUBLIC-COMMON
+                    type: COMMON
+                    interFogLatency: 2
+                    interFogLatencyVariation: 1
+                    interFogThroughput: 1000
+                    interEdgeLatency: 3
+                    interEdgeLatencyVariation: 1
+                    interEdgeThroughput: 1000
+                    edgeFogLatency: 5
+                    edgeFogLatencyVariation: 1
+                    edgeFogThroughput: 1000
+                    networkLocations:
+                        -
+                            id: PUBLIC-COMMON-DEFAULT
+                            name: PUBLIC-COMMON-DEFAULT
+                            type: DEFAULT
+                            terminalLinkLatency: 1
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            terminalLinkPacketLoss: 1
+                            physicalLocations:
+                                -
+                                    id: cloud-1
+                                    name: cloud-1
+                                    type: DC
+        -
+            id: operator-1
+            name: operator-1
+            type: OPERATOR
+            interZoneLatency: 0
+            interZoneLatencyVariation: 0
+            interZoneThroughput: 1000
+            zones:
+                -
+                    id: operator-1-COMMON
+                    name: operator-1-COMMON
+                    type: COMMON
+                    interFogLatency: 2
+                    interFogLatencyVariation: 1
+                    interFogThroughput: 1000
+                    interEdgeLatency: 3
+                    interEdgeLatencyVariation: 1
+                    interEdgeThroughput: 1000
+                    edgeFogLatency: 5
+                    edgeFogLatencyVariation: 1
+                    edgeFogThroughput: 1000
+                    networkLocations:
+                        -
+                            id: operator-1-COMMON-DEFAULT
+                            name: operator-1-COMMON-DEFAULT
+                            type: DEFAULT
+                            terminalLinkLatency: 1
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            terminalLinkPacketLoss: 1
+                -
+                    id: zone-1
+                    name: zone-1
+                    type: ZONE
+                    interFogLatency: 0
+                    interFogLatencyVariation: 0
+                    interFogThroughput: 1000
+                    interEdgeLatency: 0
+                    interEdgeLatencyVariation: 0
+                    interEdgeThroughput: 1000
+                    edgeFogLatency: 0
+                    edgeFogLatencyVariation: 0
+                    edgeFogThroughput: 1000
+                    networkLocations:
+                        -
+                            id: zone-1-DEFAULT
+                            name: zone-1-DEFAULT
+                            type: DEFAULT
+                            terminalLinkLatency: 1
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            terminalLinkPacketLoss: 1
+                            physicalLocations:
+                                -
+                                    id: edge-1
+                                    name: edge-1
+                                    type: EDGE
+                                    processes:
+                                        -
+                                            id: server-2
+                                            name: server-2
+                                            type: EDGE-APP
+                                            isExternal: false
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            image: 'meep-docker-registry:30001/server'
+                                            environment: ""
+                                            commandArguments: '-c, export; ./server 172.17.0.1 3001 server-2 2500 1 null zone-1 10000 10;'
+                                            commandExe: /bin/bash
+                                            serviceConfig:
+                                                name: server-2
+                                                meSvcName: server-2-srv
+                                                ports:
+                                                    -
+                                                        protocol: TCP
+                                                        port: 2500
+                                                        externalPort: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                        -
+                            id: poa-1
+                            name: poa-1
+                            type: POA
+                            terminalLinkLatency: 0
+                            terminalLinkLatencyVariation: 0
+                            terminalLinkThroughput: 1000
+                            terminalLinkPacketLoss: 0
+                            physicalLocations:
+                                -
+                                    id: fog-1
+                                    name: fog-1
+                                    type: FOG
+                                    processes:
+                                        -
+                                            id: server-1
+                                            name: server-1
+                                            type: EDGE-APP
+                                            isExternal: false
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            image: 'meep-docker-registry:30001/server'
+                                            environment: ""
+                                            commandArguments: '-c, export; ./server 172.17.0.1 3001 server-1 2500 1 poa-1 zone-1 10000 10;'
+                                            commandExe: /bin/bash
+                                            serviceConfig:
+                                                name: server-1
+                                                meSvcName: server-1-srv
+                                                ports:
+                                                    -
+                                                        protocol: TCP
+                                                        port: 2500
+                                                        externalPort: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                                -
+                                    id: ue-1
+                                    name: ue-1
+                                    type: UE
+                                    processes:
+                                        -
+                                            id: client-1
+                                            name: client-1
+                                            type: UE-APP
+                                            isExternal: false
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            image: 'meep-docker-registry:30001/client'
+                                            environment: ""
+                                            commandArguments: '-c, export; ./client 172.17.0.1 3001 172.17.0.1 3000 client-1 1;'
+                                            commandExe: /bin/bash
+                                            serviceConfig: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                        -
+                            id: poa-2
+                            name: poa-2
+                            type: POA
+                            terminalLinkLatency: 1
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            terminalLinkPacketLoss: 1
+                            physicalLocations:
+                                -
+                                    id: fog-2
+                                    name: fog-2
+                                    type: FOG
+                                    processes:
+                                        -
+                                            id: server-3
+                                            name: server-3
+                                            type: EDGE-APP
+                                            isExternal: false
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            image: 'meep-docker-registry:30001/server'
+                                            environment: ""
+                                            commandArguments: '-c, export; ./server 172.17.0.1 3001 server-3 2500 1 poa-2 zone-1 10000 10;'
+                                            commandExe: /bin/bash
+                                            serviceConfig:
+                                                name: server-3
+                                                meSvcName: server-3-srv
+                                                ports:
+                                                    -
+                                                        protocol: TCP
+                                                        port: 2500
+                                                        externalPort: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                    interEdgePacketLoss: 0
+                    interFogPacketLoss: 0
+                    edgeFogPacketLoss: 0
+                -
+                    id: zone-2
+                    name: zone-2
+                    type: ZONE
+                    interFogLatency: 2
+                    interFogLatencyVariation: 1
+                    interFogThroughput: 1000
+                    interEdgeLatency: 3
+                    interEdgeLatencyVariation: 1
+                    interEdgeThroughput: 1000
+                    edgeFogLatency: 5
+                    edgeFogLatencyVariation: 1
+                    edgeFogThroughput: 1000
+                    networkLocations:
+                        -
+                            id: zone-2-DEFAULT
+                            name: zone-2-DEFAULT
+                            type: DEFAULT
+                            terminalLinkLatency: 1
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            terminalLinkPacketLoss: 1
+                        -
+                            id: poa-3
+                            name: poa-3
+                            type: POA
+                            terminalLinkLatency: 1
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            terminalLinkPacketLoss: 1
+                -
+                    id: zone-3
+                    name: zone-3
+                    type: ZONE
+                    interFogLatency: 2
+                    interFogLatencyVariation: 1
+                    interFogThroughput: 1000
+                    interEdgeLatency: 3
+                    interEdgeLatencyVariation: 1
+                    interEdgeThroughput: 1000
+                    edgeFogLatency: 5
+                    edgeFogLatencyVariation: 1
+                    edgeFogThroughput: 1000
+                    networkLocations:
+                        -
+                            id: zone-3-DEFAULT
+                            name: zone-3-DEFAULT
+                            type: DEFAULT
+                            terminalLinkLatency: 1
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            terminalLinkPacketLoss: 1
+            interZonePacketLoss: 0
+        -
+            id: operator-2
+            name: operator-2
+            type: OPERATOR
+            interZoneLatency: 6
+            interZoneLatencyVariation: 2
+            interZoneThroughput: 1000
+            zones:
+                -
+                    id: operator-2-COMMON
+                    name: operator-2-COMMON
+                    type: COMMON
+                    interFogLatency: 2
+                    interFogLatencyVariation: 1
+                    interFogThroughput: 1000
+                    interEdgeLatency: 3
+                    interEdgeLatencyVariation: 1
+                    interEdgeThroughput: 1000
+                    edgeFogLatency: 5
+                    edgeFogLatencyVariation: 1
+                    edgeFogThroughput: 1000
+                    networkLocations:
+                        -
+                            id: operator-2-COMMON-DEFAULT
+                            name: operator-2-COMMON-DEFAULT
+                            type: DEFAULT
+                            terminalLinkLatency: 1
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            terminalLinkPacketLoss: 1
+                -
+                    id: zone-4
+                    name: zone-4
+                    type: ZONE
+                    interFogLatency: 2
+                    interFogLatencyVariation: 1
+                    interFogThroughput: 1000
+                    interEdgeLatency: 3
+                    interEdgeLatencyVariation: 1
+                    interEdgeThroughput: 1000
+                    edgeFogLatency: 5
+                    edgeFogLatencyVariation: 1
+                    edgeFogThroughput: 1000
+                    networkLocations:
+                        -
+                            id: zone-4-DEFAULT
+                            name: zone-4-DEFAULT
+                            type: DEFAULT
+                            terminalLinkLatency: 1
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            terminalLinkPacketLoss: 1
+                -
+                    id: zone-5
+                    name: zone-5
+                    type: ZONE
+                    interFogLatency: 2
+                    interFogLatencyVariation: 1
+                    interFogThroughput: 1000
+                    interEdgeLatency: 3
+                    interEdgeLatencyVariation: 1
+                    interEdgeThroughput: 1000
+                    edgeFogLatency: 5
+                    edgeFogLatencyVariation: 1
+                    edgeFogThroughput: 1000
+                    networkLocations:
+                        -
+                            id: zone-5-DEFAULT
+                            name: zone-5-DEFAULT
+                            type: DEFAULT
+                            terminalLinkLatency: 1
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            terminalLinkPacketLoss: 1
+    interDomainPacketLoss: 0
