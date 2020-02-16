@@ -1,0 +1,835 @@
+version: 1.3.0
+name: real-motion
+deployment:
+    interDomainThroughput: 1000
+    domains:
+        -
+            id: PUBLIC
+            name: PUBLIC
+            type: PUBLIC
+            interZoneLatency: 6
+            interZoneLatencyVariation: 2
+            interZoneThroughput: 1000
+            zones:
+                -
+                    id: PUBLIC-COMMON
+                    name: PUBLIC-COMMON
+                    type: COMMON
+                    netChar:
+                        latency: 5
+                        latencyVariation: 1
+                        throughput: 1000
+                        packetLoss: null
+                    networkLocations:
+                        -
+                            id: PUBLIC-COMMON-DEFAULT
+                            name: PUBLIC-COMMON-DEFAULT
+                            type: DEFAULT
+                            terminalLinkLatency: 1
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            terminalLinkPacketLoss: 1
+                            meta: null
+                            userMeta: null
+                            physicalLocations: null
+                    interFogLatency: null
+                    interFogLatencyVariation: null
+                    interFogThroughput: null
+                    interFogPacketLoss: null
+                    interEdgeLatency: null
+                    interEdgeLatencyVariation: null
+                    interEdgeThroughput: null
+                    interEdgePacketLoss: null
+                    edgeFogLatency: null
+                    edgeFogLatencyVariation: null
+                    edgeFogThroughput: null
+                    edgeFogPacketLoss: null
+                    meta: null
+                    userMeta: null
+            interZonePacketLoss: null
+            meta: null
+            userMeta: null
+        -
+            id: operator-1
+            name: operator-1
+            type: OPERATOR
+            interZoneLatency: 3
+            interZoneLatencyVariation: 2
+            interZoneThroughput: 1000
+            zones:
+                -
+                    id: operator-1-COMMON
+                    name: operator-1-COMMON
+                    type: COMMON
+                    netChar:
+                        latency: 5
+                        latencyVariation: 1
+                        throughput: 1000
+                        packetLoss: null
+                    networkLocations:
+                        -
+                            id: operator-1-COMMON-DEFAULT
+                            name: operator-1-COMMON-DEFAULT
+                            type: DEFAULT
+                            terminalLinkLatency: 1
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            terminalLinkPacketLoss: 1
+                            meta: null
+                            userMeta: null
+                            physicalLocations: null
+                    interFogLatency: null
+                    interFogLatencyVariation: null
+                    interFogThroughput: null
+                    interFogPacketLoss: null
+                    interEdgeLatency: null
+                    interEdgeLatencyVariation: null
+                    interEdgeThroughput: null
+                    interEdgePacketLoss: null
+                    edgeFogLatency: null
+                    edgeFogLatencyVariation: null
+                    edgeFogThroughput: null
+                    edgeFogPacketLoss: null
+                    meta: null
+                    userMeta: null
+                -
+                    id: zone-1
+                    name: zone-1
+                    type: ZONE
+                    netChar:
+                        latency: 2
+                        latencyVariation: 1
+                        throughput: 1000
+                        packetLoss: null
+                    networkLocations:
+                        -
+                            id: zone-1-DEFAULT
+                            name: zone-1-DEFAULT
+                            type: DEFAULT
+                            terminalLinkLatency: 1
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            terminalLinkPacketLoss: 1
+                            physicalLocations:
+                                -
+                                    id: edge-1
+                                    name: edge-1
+                                    type: EDGE
+                                    processes:
+                                        -
+                                            id: server-zone-1
+                                            name: server-zone-1
+                                            type: EDGE-APP
+                                            image: 'meep-docker-registry:30001/server_motion'
+                                            commandArguments: '-c, export; ./server 172.17.0.1 3001 server-zone-1 2500 1 null zone-1 1000 10;'
+                                            commandExe: /bin/bash
+                                            serviceConfig:
+                                                name: server-zone-1
+                                                meSvcName: server-zone-1-srv
+                                                ports:
+                                                    -
+                                                        protocol: TCP
+                                                        port: 2500
+                                                        externalPort: null
+                                            isExternal: null
+                                            environment: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                                            status: null
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            meta: null
+                                            userMeta: null
+                                            appLatency: null
+                                            appLatencyVariation: null
+                                            appThroughput: null
+                                            appPacketLoss: null
+                                            placementId: null
+                                    isExternal: null
+                                    networkLocationsInRange: null
+                                    meta: null
+                                    userMeta: null
+                                    linkLatency: null
+                                    linkLatencyVariation: null
+                                    linkThroughput: null
+                                    linkPacketLoss: null
+                            meta: null
+                            userMeta: null
+                        -
+                            id: poa-1
+                            name: poa-1
+                            type: POA
+                            terminalLinkLatency: 2
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            physicalLocations:
+                                -
+                                    id: fog-1
+                                    name: fog-1
+                                    type: FOG
+                                    processes:
+                                        -
+                                            id: server-zone-1-poa-1
+                                            name: server-zone-1-poa-1
+                                            type: EDGE-APP
+                                            image: 'meep-docker-registry:30001/server_motion'
+                                            commandArguments: '-c, export; ./server 172.17.0.1 3001 server-zone-1-poa-1 2500 1 poa-1 zone-1 1000 10;'
+                                            commandExe: /bin/bash
+                                            serviceConfig:
+                                                name: server-zone-1-poa-1
+                                                meSvcName: server-zone-1-poa-1-srv
+                                                ports:
+                                                    -
+                                                        protocol: TCP
+                                                        port: 2500
+                                                        externalPort: null
+                                            isExternal: null
+                                            environment: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                                            status: null
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            meta: null
+                                            userMeta: null
+                                            appLatency: null
+                                            appLatencyVariation: null
+                                            appThroughput: null
+                                            appPacketLoss: null
+                                            placementId: null
+                                    isExternal: null
+                                    networkLocationsInRange: null
+                                    meta: null
+                                    userMeta: null
+                                    linkLatency: null
+                                    linkLatencyVariation: null
+                                    linkThroughput: null
+                                    linkPacketLoss: null
+                                -
+                                    id: ue-1
+                                    name: ue-1
+                                    type: UE
+                                    processes:
+                                        -
+                                            id: client-1
+                                            name: client-1
+                                            type: UE-APP
+                                            image: 'meep-docker-registry:30001/client_motion'
+                                            commandArguments: '-c, export; ./client 172.17.0.1 3001 172.17.0.1 3000 client-1 1 1000 ue-1;'
+                                            commandExe: /bin/bash
+                                            appThroughput: 1000
+                                            isExternal: null
+                                            environment: null
+                                            serviceConfig: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                                            status: null
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            meta: null
+                                            userMeta: null
+                                            appLatency: null
+                                            appLatencyVariation: null
+                                            appPacketLoss: null
+                                            placementId: null
+                                    linkLatency: 3
+                                    linkLatencyVariation: 2
+                                    linkThroughput: 1000
+                                    linkPacketLoss: 0.001
+                                    isExternal: null
+                                    networkLocationsInRange: null
+                                    meta: null
+                                    userMeta: null
+                                -
+                                    id: ue-2
+                                    name: ue-2
+                                    type: UE
+                                    processes:
+                                        -
+                                            id: client-2
+                                            name: client-2
+                                            type: UE-APP
+                                            image: 'meep-docker-registry:30001/client_motion'
+                                            commandArguments: '-c, export; ./client 172.17.0.1 3001 172.17.0.1 3000 client-2 1 1000 ue-2;'
+                                            commandExe: /bin/bash
+                                            appThroughput: 1000
+                                            isExternal: null
+                                            environment: null
+                                            serviceConfig: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                                            status: null
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            meta: null
+                                            userMeta: null
+                                            appLatency: null
+                                            appLatencyVariation: null
+                                            appPacketLoss: null
+                                            placementId: null
+                                    linkLatency: 3
+                                    linkLatencyVariation: 2
+                                    linkThroughput: 1000
+                                    linkPacketLoss: 0.001
+                                    isExternal: null
+                                    networkLocationsInRange: null
+                                    meta: null
+                                    userMeta: null
+                                -
+                                    id: ue-3
+                                    name: ue-3
+                                    type: UE
+                                    processes:
+                                        -
+                                            id: client-3
+                                            name: client-3
+                                            type: UE-APP
+                                            image: 'meep-docker-registry:30001/client_motion'
+                                            commandArguments: '-c, export; ./client 172.17.0.1 3001 172.17.0.1 3000 client-3 1 1000 ue-3;'
+                                            commandExe: /bin/bash
+                                            appThroughput: 1000
+                                            isExternal: null
+                                            environment: null
+                                            serviceConfig: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                                            status: null
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            meta: null
+                                            userMeta: null
+                                            appLatency: null
+                                            appLatencyVariation: null
+                                            appPacketLoss: null
+                                            placementId: null
+                                    linkLatency: 3
+                                    linkLatencyVariation: 2
+                                    linkThroughput: 1000
+                                    linkPacketLoss: 0.001
+                                    isExternal: null
+                                    networkLocationsInRange: null
+                                    meta: null
+                                    userMeta: null
+                            terminalLinkPacketLoss: null
+                            meta: null
+                            userMeta: null
+                        -
+                            id: poa-2
+                            name: poa-2
+                            type: POA
+                            terminalLinkLatency: 2
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            physicalLocations:
+                                -
+                                    id: fog-2
+                                    name: fog-2
+                                    type: FOG
+                                    processes:
+                                        -
+                                            id: server-zone-1-poa-2
+                                            name: server-zone-1-poa-2
+                                            type: EDGE-APP
+                                            image: 'meep-docker-registry:30001/server_motion'
+                                            commandArguments: '-c, export; ./server 172.17.0.1 3001 server-zone-1-poa-2 2500 1 poa-2 zone-1 1000 10;'
+                                            commandExe: /bin/bash
+                                            serviceConfig:
+                                                name: server-zone-1-poa-2
+                                                meSvcName: server-zone-1-poa-2-srv
+                                                ports:
+                                                    -
+                                                        protocol: TCP
+                                                        port: 2500
+                                                        externalPort: null
+                                            isExternal: null
+                                            environment: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                                            status: null
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            meta: null
+                                            userMeta: null
+                                            appLatency: null
+                                            appLatencyVariation: null
+                                            appThroughput: null
+                                            appPacketLoss: null
+                                            placementId: null
+                                    linkThroughput: 1000
+                                    isExternal: null
+                                    networkLocationsInRange: null
+                                    meta: null
+                                    userMeta: null
+                                    linkLatency: null
+                                    linkLatencyVariation: null
+                                    linkPacketLoss: null
+                                -
+                                    id: ue-4
+                                    name: ue-4
+                                    type: UE
+                                    processes:
+                                        -
+                                            id: client-4
+                                            name: client-4
+                                            type: UE-APP
+                                            image: 'meep-docker-registry:30001/client_motion'
+                                            commandArguments: '-c, export; ./client 172.17.0.1 3001 172.17.0.1 3000 client-4 1 1000 ue-4;'
+                                            commandExe: /bin/bash
+                                            appThroughput: 1000
+                                            isExternal: null
+                                            environment: null
+                                            serviceConfig: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                                            status: null
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            meta: null
+                                            userMeta: null
+                                            appLatency: null
+                                            appLatencyVariation: null
+                                            appPacketLoss: null
+                                            placementId: null
+                                    linkLatency: 3
+                                    linkLatencyVariation: 2
+                                    linkThroughput: 1000
+                                    linkPacketLoss: 0.001
+                                    isExternal: null
+                                    networkLocationsInRange: null
+                                    meta: null
+                                    userMeta: null
+                                -
+                                    id: ue-5
+                                    name: ue-5
+                                    type: UE
+                                    processes:
+                                        -
+                                            id: client-5
+                                            name: client-5
+                                            type: UE-APP
+                                            image: 'meep-docker-registry:30001/client_motion'
+                                            commandArguments: '-c, export; ./client 172.17.0.1 3001 172.17.0.1 3000 client-5 1 1000 ue-5;'
+                                            commandExe: /bin/bash
+                                            appThroughput: 1000
+                                            isExternal: null
+                                            environment: null
+                                            serviceConfig: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                                            status: null
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            meta: null
+                                            userMeta: null
+                                            appLatency: null
+                                            appLatencyVariation: null
+                                            appPacketLoss: null
+                                            placementId: null
+                                    linkLatency: 3
+                                    linkLatencyVariation: 2
+                                    linkThroughput: 1000
+                                    linkPacketLoss: 0.001
+                                    isExternal: null
+                                    networkLocationsInRange: null
+                                    meta: null
+                                    userMeta: null
+                            terminalLinkPacketLoss: null
+                            meta: null
+                            userMeta: null
+                    interFogLatency: null
+                    interFogLatencyVariation: null
+                    interFogThroughput: null
+                    interFogPacketLoss: null
+                    interEdgeLatency: null
+                    interEdgeLatencyVariation: null
+                    interEdgeThroughput: null
+                    interEdgePacketLoss: null
+                    edgeFogLatency: null
+                    edgeFogLatencyVariation: null
+                    edgeFogThroughput: null
+                    edgeFogPacketLoss: null
+                    meta: null
+                    userMeta: null
+                -
+                    id: zone-2
+                    name: zone-2
+                    type: ZONE
+                    netChar:
+                        latency: 2
+                        latencyVariation: 1
+                        throughput: 1000
+                        packetLoss: null
+                    networkLocations:
+                        -
+                            id: zone-2-DEFAULT
+                            name: zone-2-DEFAULT
+                            type: DEFAULT
+                            terminalLinkLatency: 1
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            terminalLinkPacketLoss: 1
+                            physicalLocations:
+                                -
+                                    id: edge-2
+                                    name: edge-2
+                                    type: EDGE
+                                    processes:
+                                        -
+                                            id: server-zone-2
+                                            name: server-zone-2
+                                            type: EDGE-APP
+                                            image: 'meep-docker-registry:30001/server_motion'
+                                            commandArguments: '-c, export; ./server 172.17.0.1 3001 server-zone-2 2500 1 null zone-2 1000 10;'
+                                            commandExe: /bin/bash
+                                            serviceConfig:
+                                                name: server-zone-2
+                                                meSvcName: server-zone-2-srv
+                                                ports:
+                                                    -
+                                                        protocol: TCP
+                                                        port: 2500
+                                                        externalPort: null
+                                            isExternal: null
+                                            environment: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                                            status: null
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            meta: null
+                                            userMeta: null
+                                            appLatency: null
+                                            appLatencyVariation: null
+                                            appThroughput: null
+                                            appPacketLoss: null
+                                            placementId: null
+                                    linkThroughput: 1000
+                                    isExternal: null
+                                    networkLocationsInRange: null
+                                    meta: null
+                                    userMeta: null
+                                    linkLatency: null
+                                    linkLatencyVariation: null
+                                    linkPacketLoss: null
+                            meta: null
+                            userMeta: null
+                        -
+                            id: poa-3
+                            name: poa-3
+                            type: POA
+                            terminalLinkLatency: 2
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            physicalLocations:
+                                -
+                                    id: fog-3
+                                    name: fog-3
+                                    type: FOG
+                                    processes:
+                                        -
+                                            id: server-zone-2-poa-3
+                                            name: server-zone-2-poa-3
+                                            type: EDGE-APP
+                                            image: 'meep-docker-registry:30001/server_motion'
+                                            commandArguments: '-c, export; ./server 172.17.0.1 3001 server-zone-2-poa-3 2500 1 poa-3 zone-2 1000 10;'
+                                            commandExe: /bin/bash
+                                            serviceConfig:
+                                                name: server-zone-2-poa-3
+                                                meSvcName: server-zone-2-poa-3-srv
+                                                ports:
+                                                    -
+                                                        protocol: TCP
+                                                        port: 2500
+                                                        externalPort: null
+                                            isExternal: null
+                                            environment: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                                            status: null
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            meta: null
+                                            userMeta: null
+                                            appLatency: null
+                                            appLatencyVariation: null
+                                            appThroughput: null
+                                            appPacketLoss: null
+                                            placementId: null
+                                    linkThroughput: 1000
+                                    isExternal: null
+                                    networkLocationsInRange: null
+                                    meta: null
+                                    userMeta: null
+                                    linkLatency: null
+                                    linkLatencyVariation: null
+                                    linkPacketLoss: null
+                                -
+                                    id: ue-6
+                                    name: ue-6
+                                    type: UE
+                                    processes:
+                                        -
+                                            id: client-6
+                                            name: client-6
+                                            type: UE-APP
+                                            image: 'meep-docker-registry:30001/client_motion'
+                                            commandArguments: '-c, export; ./client 172.17.0.1 3001 172.17.0.1 3000 client-6 1 1000 ue-6;'
+                                            commandExe: /bin/bash
+                                            appThroughput: 1000
+                                            isExternal: null
+                                            environment: null
+                                            serviceConfig: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                                            status: null
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            meta: null
+                                            userMeta: null
+                                            appLatency: null
+                                            appLatencyVariation: null
+                                            appPacketLoss: null
+                                            placementId: null
+                                    linkLatency: 3
+                                    linkLatencyVariation: 2
+                                    linkThroughput: 1000
+                                    linkPacketLoss: 0.001
+                                    isExternal: null
+                                    networkLocationsInRange: null
+                                    meta: null
+                                    userMeta: null
+                                -
+                                    id: ue-7
+                                    name: ue-7
+                                    type: UE
+                                    processes:
+                                        -
+                                            id: client-7
+                                            name: client-7
+                                            type: UE-APP
+                                            image: 'meep-docker-registry:30001/client_motion'
+                                            commandArguments: '-c, export; ./client 172.17.0.1 3001 172.17.0.1 3000 client-7 1 1000 ue-7;'
+                                            commandExe: /bin/bash
+                                            appThroughput: 1000
+                                            isExternal: null
+                                            environment: null
+                                            serviceConfig: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                                            status: null
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            meta: null
+                                            userMeta: null
+                                            appLatency: null
+                                            appLatencyVariation: null
+                                            appPacketLoss: null
+                                            placementId: null
+                                    linkLatency: 3
+                                    linkLatencyVariation: 2
+                                    linkThroughput: 1000
+                                    linkPacketLoss: 0.001
+                                    isExternal: null
+                                    networkLocationsInRange: null
+                                    meta: null
+                                    userMeta: null
+                                -
+                                    id: ue-8
+                                    name: ue-8
+                                    type: UE
+                                    processes:
+                                        -
+                                            id: client-8
+                                            name: client-8
+                                            type: UE-APP
+                                            image: 'meep-docker-registry:30001/client_motion'
+                                            commandArguments: '-c, export; ./client 172.17.0.1 3001 172.17.0.1 3000 client-8 1 1000 ue-8;'
+                                            commandExe: /bin/bash
+                                            appThroughput: 1000
+                                            isExternal: null
+                                            environment: null
+                                            serviceConfig: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                                            status: null
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            meta: null
+                                            userMeta: null
+                                            appLatency: null
+                                            appLatencyVariation: null
+                                            appPacketLoss: null
+                                            placementId: null
+                                    linkLatency: 3
+                                    linkLatencyVariation: 2
+                                    linkThroughput: 1000
+                                    linkPacketLoss: 0.001
+                                    isExternal: null
+                                    networkLocationsInRange: null
+                                    meta: null
+                                    userMeta: null
+                            terminalLinkPacketLoss: null
+                            meta: null
+                            userMeta: null
+                        -
+                            id: poa-4
+                            name: poa-4
+                            type: POA
+                            terminalLinkLatency: 2
+                            terminalLinkLatencyVariation: 1
+                            terminalLinkThroughput: 1000
+                            physicalLocations:
+                                -
+                                    id: fog-4
+                                    name: fog-4
+                                    type: FOG
+                                    processes:
+                                        -
+                                            id: server-zone-2-poa-4
+                                            name: server-zone-2-poa-4
+                                            type: EDGE-APP
+                                            image: 'meep-docker-registry:30001/server_motion'
+                                            commandArguments: '-c, export; ./server 172.17.0.1 3001 server-zone-2-poa-4 2500 1 poa-4 zone-2 1000 10;'
+                                            commandExe: /bin/bash
+                                            serviceConfig:
+                                                name: server-zone-2-poa-4
+                                                meSvcName: server-zone-2-poa-4-srv
+                                                ports:
+                                                    -
+                                                        protocol: TCP
+                                                        port: 2500
+                                                        externalPort: null
+                                            isExternal: null
+                                            environment: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                                            status: null
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            meta: null
+                                            userMeta: null
+                                            appLatency: null
+                                            appLatencyVariation: null
+                                            appThroughput: null
+                                            appPacketLoss: null
+                                            placementId: null
+                                    linkThroughput: 1000
+                                    isExternal: null
+                                    networkLocationsInRange: null
+                                    meta: null
+                                    userMeta: null
+                                    linkLatency: null
+                                    linkLatencyVariation: null
+                                    linkPacketLoss: null
+                                -
+                                    id: ue-9
+                                    name: ue-9
+                                    type: UE
+                                    processes:
+                                        -
+                                            id: client-9
+                                            name: client-9
+                                            type: UE-APP
+                                            image: 'meep-docker-registry:30001/client_motion'
+                                            commandArguments: '-c, export; ./client 172.17.0.1 3001 172.17.0.1 3000 client-9 1 1000 ue-9;'
+                                            commandExe: /bin/bash
+                                            appThroughput: 1000
+                                            isExternal: null
+                                            environment: null
+                                            serviceConfig: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                                            status: null
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            meta: null
+                                            userMeta: null
+                                            appLatency: null
+                                            appLatencyVariation: null
+                                            appPacketLoss: null
+                                            placementId: null
+                                    linkLatency: 3
+                                    linkLatencyVariation: 2
+                                    linkThroughput: 1000
+                                    linkPacketLoss: 0.001
+                                    isExternal: null
+                                    networkLocationsInRange: null
+                                    meta: null
+                                    userMeta: null
+                                -
+                                    id: ue-10
+                                    name: ue-10
+                                    type: UE
+                                    processes:
+                                        -
+                                            id: client-10
+                                            name: client-10
+                                            type: UE-APP
+                                            image: 'meep-docker-registry:30001/client_motion'
+                                            commandArguments: '-c, export; ./client 172.17.0.1 3001 172.17.0.1 3000 client-10 1 1000 ue-10;'
+                                            commandExe: /bin/bash
+                                            appThroughput: 1000
+                                            isExternal: null
+                                            environment: null
+                                            serviceConfig: null
+                                            gpuConfig: null
+                                            externalConfig: null
+                                            status: null
+                                            userChartLocation: null
+                                            userChartAlternateValues: null
+                                            userChartGroup: null
+                                            meta: null
+                                            userMeta: null
+                                            appLatency: null
+                                            appLatencyVariation: null
+                                            appPacketLoss: null
+                                            placementId: null
+                                    linkLatency: 3
+                                    linkLatencyVariation: 2
+                                    linkThroughput: 1000
+                                    linkPacketLoss: 0.001
+                                    isExternal: null
+                                    networkLocationsInRange: null
+                                    meta: null
+                                    userMeta: null
+                            terminalLinkPacketLoss: null
+                            meta: null
+                            userMeta: null
+                    interFogLatency: null
+                    interFogLatencyVariation: null
+                    interFogThroughput: null
+                    interFogPacketLoss: null
+                    interEdgeLatency: null
+                    interEdgeLatencyVariation: null
+                    interEdgeThroughput: null
+                    interEdgePacketLoss: null
+                    edgeFogLatency: null
+                    edgeFogLatencyVariation: null
+                    edgeFogThroughput: null
+                    edgeFogPacketLoss: null
+                    meta: null
+                    userMeta: null
+            interZonePacketLoss: null
+            meta: null
+            userMeta: null
+    interDomainLatency: null
+    interDomainLatencyVariation: null
+    interDomainPacketLoss: null
+    meta: null
+    userMeta: null
+config: null
