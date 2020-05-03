@@ -1,5 +1,6 @@
 #include "client.h"
 
+
 Client::Client(string _name, int _application_id, string _location_user_equipment)
 {
 	name = _name;
@@ -140,3 +141,16 @@ double Client::get_score(Node * node)
 	return number_of_disconnects;
 }
 */
+
+void Client :: set_possible_poas_client(vector<Poa*>* possbile_poa_client)
+{
+
+	this->possbile_poa_client = possbile_poa_client;
+
+}
+
+
+vector<Poa*>* Client :: get_possible_poas_client()
+{
+	return possbile_poa_client ;
+}

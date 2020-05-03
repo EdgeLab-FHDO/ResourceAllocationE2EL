@@ -6,8 +6,10 @@
 
 #include "server.h"
 #include "node.h"
+#include "Poa.h"
 class Server;
 class Node;
+
 
 using namespace std;
 
@@ -38,6 +40,8 @@ class Client
 	
 	vector<Server *> previous_servers;
 	
+	vector<Poa*>* possbile_poa_client;
+
 	Node * node;
 	
 	public:
@@ -57,6 +61,10 @@ class Client
 	
 	string get_location_user_equipment();
 	
+	void set_possible_poas_client(vector<Poa*>* possbile_poa_client);//new change1
+
+	vector<Poa*>* get_possible_poas_client();
+
 	//Client_state get_state();
 	
 	void set_node(Node * node);

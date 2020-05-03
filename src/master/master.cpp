@@ -21,6 +21,8 @@
 #include "client.h"
 #include "server.h"
 #include "node.h"
+#include "Poa.h"
+
 
 #include <cpprest/http_client.h>
 #include <cpprest/filestream.h>
@@ -66,6 +68,7 @@ struct Node_with_score
 {
 	Node * node;
 	double score;
+	Poa * poa;
 };
 
 vector<Client *> clients;
@@ -73,6 +76,8 @@ vector<Server *> servers;
 vector<Node *> nodes;
 vector<Event> events;
 vector<History_score *> history_scores;
+vector<Poa *> poas;//b:
+
 
 Score_calculation_algorithm_type score_calculation_algorithm;
 
@@ -85,16 +90,22 @@ double history_decay_factor = 1 / 60 / 1000;	// decrease of number of disconnect
 fstream log_file;
 fstream output_file;
 
+bool no_limit = false;
+
 void read_limits_file(string file_name);
-void read_simulation_file(string file_name);
+void read_simulation_file(string file_name);;
 void read_parameters_file(string file_name);
+void read_poa_configuration(string file_name);
+void read_poa_client_configuration(string file_name);
 void write_number_of_connected_clients_to_output_file(time_point<system_clock, milliseconds> time);
+void clients_number_writer_thread();
+void servers_reply_thread(int port);
 //Server * select_best_server(Client * client);
 //Server * select_random_server(Client * client);
 vector<Node_with_score> calculate_node_random(Client * client);
 vector<Node_with_score> calculate_node_nearest(Client * client);
 vector<Node_with_score> calculate_node_score(Client * client);
-Node * select_node(vector<Node_with_score> scores_list);
+Node_with_score select_node(vector<Node_with_score> scores_list);
 Server * get_or_create_server(string server_name, uint16_t application_id, string point_of_access, string zone);
 Client * get_or_create_client(string client_name, uint16_t application_id, string user_equipment_name);
 History_score * get_or_create_history_score(Client * client, Node * node);
@@ -102,17 +113,24 @@ void get_client_location(Client * client, string& point_of_access, string& zone)
 void move_client(Client * client, string location);
 int get_distance(Client * client, Server * server);
 int get_distance(Client * client, Node * node);
+//int get_distance_client_poa(Client * client,Node * node);
 void simulation_thread(time_point<system_clock, milliseconds> simulation_start_time);
 
+
+
+//vector<Node_with_score> calculate_node_possible_poa_score(Client * client ,vector<Poa*>possbile_poa_client);
+void split(const string& str,const string& delim, vector<string>&  parts);
 int main(int argc, char *argv[])
 {	
-	if (argc < 3) {
-		cout << "usage: " << argv[0] << " port parameters_file_name" << endl;
+	if (argc < 5) {
+		cout << "usage: " << argv[0] << " client_port server_port no_limit parameters_file_name" << endl;
 		return -1;
 	}
 	
-	int port = atoi(argv[1]);
-	string parameters_file_name = argv[2];
+	int port = atoi(argv[1]);//b:getting port number from argv command line what is shared
+	int server_port = atoi(argv[2]);
+	no_limit = atoi(argv[3]);
+	string parameters_file_name = argv[4];
 	
 	/*
 	try
@@ -129,9 +147,9 @@ int main(int argc, char *argv[])
 	}
 	*/
 	
-	system_clock::time_point time_stamp_time_point = system_clock::now();
-	time_t time_stamp_time_t = system_clock::to_time_t(time_stamp_time_point);
-	string time_stamp_string = ctime(&time_stamp_time_t);
+	system_clock::time_point time_stamp_time_point = system_clock::now();// b:saving current time in a variable
+	time_t time_stamp_time_t = system_clock::to_time_t(time_stamp_time_point);// b:converting to seconds epoch time
+	string time_stamp_string = ctime(&time_stamp_time_t);//b: convert to local time is characters
 	
 	// replace spaces with underscores
 	while(true)
@@ -143,31 +161,39 @@ int main(int argc, char *argv[])
 		time_stamp_string.replace(position, 1, "_");	// replace with underscore
 	}
 	
-	log_file.open("log_" + time_stamp_string + ".txt", fstream::out);
+	log_file.open("log_" + time_stamp_string + ".txt", fstream::out);//b: create a file in write mode to write logs may be
 	if(!log_file.is_open())
 	{
 		cout << "ERROR can not open file " << "log.txt" << " for writing" << endl;
 		return -1;
 	}
 	
-	output_file.open("output_" + time_stamp_string + ".csv", fstream::out);
+	output_file.open("output_" + time_stamp_string + ".csv", fstream::out);//b:create a file to output
 	if(!output_file.is_open())
 	{
 		cout << "ERROR can not open file " << "output.csv" << " for writing" << endl;
 		return -1;
 	}
 	
-	read_limits_file("limits.txt");
+	read_limits_file("limits.txt");//b:limits of node and there association with the other layers of network
 	
-	read_simulation_file("simulation.txt");		
+	read_simulation_file("simulation.txt");
 	
-	read_parameters_file(parameters_file_name);
+	read_parameters_file(parameters_file_name);//
 	
-	auto time_now = time_point_cast<milliseconds>(system_clock::now());
+	read_poa_configuration("poa_configuration.txt");
+
+	read_poa_client_configuration("poa_client_configuration.txt");
+
+	auto time_now = time_point_cast<milliseconds>(system_clock::now());// b:understanding is required
 	
-	thread simulation(simulation_thread, time_now);
+	thread simulation(simulation_thread, time_now);// b:new thread is created to simulate client movement
 	
-	write_number_of_connected_clients_to_output_file(time_now);
+	thread clients_number_writer(clients_number_writer_thread);// b:what is achieved by this
+	
+	thread servers_reply(servers_reply_thread, server_port);// b:what is achieved by this any check is being done ??
+	
+	//write_number_of_connected_clients_to_output_file(time_now);//b:client are created later
 	
 	log_file << endl << endl << time_now.time_since_epoch().count() << " start" << endl;
 	
@@ -181,7 +207,7 @@ int main(int argc, char *argv[])
 	
 	while(true)
 	{
-		if(connection_TCP.listen_on(port, 120000, 2000) < 0)
+		if(connection_TCP.listen_on(port, 120000, 2000) < 0)//b:is the client requesting for node in this port ??
 		{
 			std::cout << connection_TCP.get_last_error() << std::endl;
 			sleep(1);
@@ -201,7 +227,7 @@ int main(int argc, char *argv[])
 			uint16_t application_id;
 			string user_equipment_name;
 			
-			serializer.deserialize_request(buffer, name, application_id, type, user_equipment_name);
+			serializer.deserialize_request(buffer, name, application_id, type, user_equipment_name);// b:could not find the deserialize function
 			
 			//cout << "name: " << name << ", id: " << application_id << ", type: " << (int)type << ", user_equipment_name: " << user_equipment_name << endl;
 			
@@ -222,13 +248,18 @@ int main(int argc, char *argv[])
 					{
 						auto time_now = time_point_cast<milliseconds>(system_clock::now());
 						
-						previous_node->remove_client(client);
+						previous_node->remove_client(client);// b:still connection is not established y are we removig it
+						
+						History_score * history_score = get_or_create_history_score(client, previous_node);		// history of disconnects
+						
+						history_score->score++;
 						
 						cout << client->get_name() << " disconnected from " << previous_node->get_name() << endl;
 						
-						write_number_of_connected_clients_to_output_file(time_now);
+						//write_number_of_connected_clients_to_output_file(time_now);
 						
 						log_file << time_now.time_since_epoch().count() << " " << client->get_name() << " disconnected from " << previous_node->get_name() << endl;
+
 					}
 					
 					string point_of_access;
@@ -238,10 +269,12 @@ int main(int argc, char *argv[])
 					
 					client->set_location_point_of_access(point_of_access);
 					client->set_location_zone(zone);
-					
+				//	cout<<"test1"<<endl ;
+
 					vector<Node_with_score> scores_list;
 					
 					switch(score_calculation_algorithm)
+
 					{
 						case RANDOM:
 							scores_list = calculate_node_random(client);
@@ -260,10 +293,10 @@ int main(int argc, char *argv[])
 							
 							cout << "Score calculation algorithm not specified, defaulting to NEAREST" << endl << endl;
 					}
+
+					Node_with_score selected_node = select_node(scores_list);
 					
-					Node * selected_node = select_node(scores_list);
-					
-					if(selected_node == nullptr)
+					if(selected_node.score == -numeric_limits<double>::max())
 					{
 						server_hostname = "";
 						server_port = 0;
@@ -274,26 +307,28 @@ int main(int argc, char *argv[])
 					}
 					else
 					{
+						//move client should be here (new change)
+						move_client(client, selected_node.poa->get_poa_name());//new change
 						auto time_now = time_point_cast<milliseconds>(system_clock::now());
 						
-						selected_node->add_client(client);
-						client->set_node(selected_node);
+						selected_node.node->add_client(client);//new_change
+						client->set_node(selected_node.node);//new_change
 						
-						cout << client->get_name() << " connected to " << selected_node->get_name() << endl;
+						cout << client->get_name() << " connected to " << selected_node.node->get_name() << endl;
 						
-						write_number_of_connected_clients_to_output_file(time_now);
+						//write_number_of_connected_clients_to_output_file(time_now);
 						
-						log_file << time_now.time_since_epoch().count() << " " << client->get_name() << " connected to " << selected_node->get_name() << endl;
+						log_file << time_now.time_since_epoch().count() << " " << client->get_name() << " connected to " << selected_node.node->get_name()<<"   " <<"coonected poa"<< "   " <<selected_node.poa->get_poa_name()<< "  "<< endl;
 					
 						server_hostname = "";
 						server_hostname += "server";
 						server_hostname += '-';
-						server_hostname += selected_node->get_location_zone();
+						server_hostname += selected_node.node->get_location_zone();//(new_change)
 						
-						if(selected_node->get_location_point_of_access() != "null")
+						if(selected_node.node->get_location_point_of_access() != "null")
 						{
 							server_hostname += '-';
-							server_hostname += selected_node->get_location_point_of_access();
+							server_hostname += selected_node.node->get_location_point_of_access();//new change
 						}
 						
 						if(application_id == 1)
@@ -316,9 +351,10 @@ int main(int argc, char *argv[])
 				break;
 				
 				//(should no longer occur, since we are using one multi-threaded server)
-				/*case 1:	// server
+				case 1:	// server
 				{
-					buffer_size = max_buffer_size;
+					connection_TCP.disconnect();
+					/*buffer_size = max_buffer_size;
 					if(connection_TCP.receive_data(buffer, buffer_size) < 0)
 					{
 						cout << connection_TCP.get_last_error() << endl;
@@ -350,9 +386,9 @@ int main(int argc, char *argv[])
 						Client * client = server->get_active_client(0);
 						client->remove_server(server);
 						server->remove_client(client);
-					}
+					}*/
 				}
-				break;*/
+				break;
 				
 				default:
 				
@@ -382,16 +418,19 @@ void read_limits_file(string file_name)
 		int application_id;
 		long cpu_allocated_time;
 		long cpu_allocation_period;
+		int application_limit;
 		
-		while(file >> node_name >> zone_name >> point_of_access_name >> application_id >> cpu_allocated_time >> cpu_allocation_period)
+		while(file >> node_name >> zone_name >> point_of_access_name >> application_id >> cpu_allocated_time >> cpu_allocation_period >> application_limit)
 		{
-			cout << "node_name: " << node_name << ", zone_name: " << zone_name << ", point_of_access_name: " << point_of_access_name  << ", application_id: " << application_id << ", cpu_allocated_time: " << cpu_allocated_time << ", cpu_allocation_period: " << cpu_allocation_period << endl;
+			cout << "node_name: " << node_name << ", zone_name: " << zone_name << ", point_of_access_name: " << point_of_access_name  << ", application_id: " << application_id << ", cpu_allocated_time: " << cpu_allocated_time << ", cpu_allocation_period: " << cpu_allocation_period << ", application_limit: " << application_limit << endl;
 			
-			log_file << "node_name: " << node_name << ", zone_name: " << zone_name << ", point_of_access_name: " << point_of_access_name  << ", application_id: " << application_id << ", cpu_allocated_time: " << cpu_allocated_time << ", cpu_allocation_period: " << cpu_allocation_period << endl;
+			log_file << "node_name: " << node_name << ", zone_name: " << zone_name << ", point_of_access_name: " << point_of_access_name  << ", application_id: " << application_id << ", cpu_allocated_time: " << cpu_allocated_time << ", cpu_allocation_period: " << cpu_allocation_period << ", application_limit: " << application_limit << endl;
 			
-			Node * new_node = new Node(node_name, application_id, point_of_access_name, zone_name);
+			Node * new_node = new Node(node_name, application_id, point_of_access_name, zone_name, application_limit);
 			
+
 			nodes.push_back(new_node);
+
 		}
 	}
 	else
@@ -401,6 +440,140 @@ void read_limits_file(string file_name)
 	
 	file.close();
 }
+
+void read_poa_configuration(string file_name)
+{
+	ifstream file(file_name);
+	string point_of_access_name;
+	string zone_name;
+	if(file.is_open())
+	{
+		while(file >> point_of_access_name >> zone_name)
+		{
+			if(point_of_access_name.compare("null")!=0)
+			{
+				cout << "poa: " << point_of_access_name << ", zone: " << zone_name << endl;
+				Poa * new_poa = new Poa(point_of_access_name, zone_name);
+				poas.push_back(new_poa);
+			}
+		}
+
+	}
+	else
+	{
+		cout << "cannot open file " << file_name << endl;
+	}
+
+	file.close();
+
+}
+
+void read_poa_client_configuration(string file_name)
+{
+	ifstream file(file_name);
+	std:: string str;
+	string client_name;
+	uint16_t application_id;
+	string user_equipment_name;
+	string delimit =" ";
+	string zone_name =" ";
+	vector<Poa*> *possible_poas_to_client;
+	int poas_count=0;
+	static int count;
+
+
+	vector<string> list_poas_to_client;
+	vector<string>::iterator it;
+	if(file.is_open())
+	{
+
+	   while(!file.eof())
+	   {
+		   while (std::getline(file, str))
+		   {
+
+			//   cout<< str << endl;
+			   list_poas_to_client.clear();
+			   split(str,delimit,list_poas_to_client);
+			   count++;
+			 //  cout<< "the size of vector received"  << list_poas_to_client.size()<< "count is" << count << endl ;
+			   possible_poas_to_client = new vector<Poa*>();
+			   poas_count=0;
+			   for (it = list_poas_to_client.begin(); it != list_poas_to_client.end(); it++)
+			   {
+				   if(it==list_poas_to_client.begin())
+				   {
+					   client_name = *it;
+				   }
+				   else if(it ==(list_poas_to_client.begin()+1))
+				   {
+					   application_id = std::stoi(*it);
+				   }
+				   else if(it ==(list_poas_to_client.begin()+2))
+				   {
+					   user_equipment_name =*it;
+
+				   }
+				   else
+				   {
+
+				   }
+				   if(it>list_poas_to_client.begin()+2)
+				   {
+					   Poa * new_poa = new Poa(*it,zone_name);
+					   possible_poas_to_client->push_back(new_poa);
+					   poas_count++;
+
+				   }
+
+
+			   }
+			   Client * client = get_or_create_client(client_name, application_id, user_equipment_name);
+			   client->set_possible_poas_client(possible_poas_to_client);
+			   cout<<"number of Poas for " << client_name << "are" << poas_count << endl ;
+
+		   }
+		   cout << "done with config file"<< endl ;
+	   }
+
+
+	}
+
+
+	else{
+		cout << "Unable to open file";
+	}
+
+
+	file.close();
+
+
+   cout<< "out of reading"<< endl;
+}
+
+void  split(const string& str, const string& delim, vector<string>& parts)
+{
+
+	//cout << "inside split" ;
+   size_t start, end = 0;
+  while (end < str.size()) {
+    start = end;
+    while (start < str.size() && (delim.find(str[start]) != string::npos)) {
+      start++;  // skip initial whitespace
+    }
+    end = start;
+    while (end < str.size() && (delim.find(str[end]) == string::npos)) {
+      end++; // skip to end of word
+    }
+    if (end-start != 0) {  // just ignore zero-length strings.
+      parts.push_back(string(str, start, end-start));
+    }
+  }
+
+
+
+}
+
 
 
 void read_simulation_file(string file_name)
@@ -553,19 +726,21 @@ vector<Node_with_score> calculate_node_random(Client * client)
 	vector<Node_with_score> scores_list;
 	
 	Node_with_score score_entry;
-	
-	for(auto node_iterator = nodes.begin(); node_iterator != nodes.end(); ++node_iterator)
+	for(auto poa_iterator = poas.begin();poa_iterator!= poas.end(); ++poa_iterator)
 	{
-		if((*node_iterator)->get_application_id() == client->get_application_id())	// same application id
-		{	
-			score_entry.score = rand() % 100;
+		 client->set_location_point_of_access((*poa_iterator)->get_poa_name());
+		 for(auto node_iterator = nodes.begin(); node_iterator != nodes.end(); ++node_iterator)
+		 {
+			 if((*node_iterator)->get_application_id() == client->get_application_id())	// same application id
+			 {
+				 score_entry.score = rand() % 100;
 			
-			score_entry.node = (*node_iterator);
+				 score_entry.node = (*node_iterator);
 			
-			scores_list.push_back(score_entry);
-		}
+				 scores_list.push_back(score_entry);
+			 }
+		 }
 	}
-	
 	return scores_list;
 }
 
@@ -578,25 +753,32 @@ vector<Node_with_score> calculate_node_nearest(Client * client)
 	
 	int distance;
 	
-	for(auto node_iterator = nodes.begin(); node_iterator != nodes.end(); ++node_iterator)
+	int distance_poa;//b:
+	for(auto poa_iterator = poas.begin();poa_iterator!= poas.end(); ++poa_iterator)
 	{
-		if((*node_iterator)->get_application_id() == client->get_application_id())	// same application id
-		{
-			distance = get_distance(client, (*node_iterator));
+		 client->set_location_point_of_access((*poa_iterator)->get_poa_name());
+
+			for(auto node_iterator = nodes.begin(); node_iterator != nodes.end(); ++node_iterator)
+			{
+				if((*node_iterator)->get_application_id() == client->get_application_id())	// same application id
+				{
+					distance = get_distance(client, (*node_iterator));
 			
-			score_entry.score = distance * -1;	// -1 to make the least distance node has the highest score
+					score_entry.score = distance * -1;	// -1 to make the least distance node has the highest score
 			
-			score_entry.node = (*node_iterator);
+					score_entry.node = (*node_iterator);
+
+					score_entry.poa = (*poa_iterator);
 			
-			scores_list.push_back(score_entry);
-		}
+					scores_list.push_back(score_entry);
+				}
+			}
 	}
-	
+
 	return scores_list;
 }
 
 
-// TODO: test this function
 vector<Node_with_score> calculate_node_score(Client * client)
 {
 	vector<Node_with_score> scores_list;
@@ -606,109 +788,134 @@ vector<Node_with_score> calculate_node_score(Client * client)
 	double score = 0;
 	
 	auto time_now = time_point_cast<milliseconds>(system_clock::now());
-	
+
 	log_file << time_point_cast<milliseconds>(system_clock::now()).time_since_epoch().count() << " score-based node selecetion for: " << client->get_name() << endl;
-	
-	for(auto node_iterator = nodes.begin(); node_iterator != nodes.end(); ++node_iterator)
+	for(auto poa_iterator = client->get_possible_poas_client()->begin();poa_iterator!= client->get_possible_poas_client()->end(); ++poa_iterator)
 	{
-		if((*node_iterator)->get_application_id() == client->get_application_id())	// same application id
+		cout<<(*poa_iterator)->get_poa_name()<< endl;
+
+     //   cout<<"test2"<<endl;
+
+		client->set_location_point_of_access((*poa_iterator)->get_poa_name());
+
+
+		for(auto node_iterator = nodes.begin(); node_iterator != nodes.end(); ++node_iterator)
 		{
-			log_file << "node: " << (*node_iterator)->get_name() << endl;
-			
-			History_score * history_score = get_or_create_history_score(client, (*node_iterator));		// history of disconnects
-			
-			// apply decay over time to history score
-			double history_score_decay_over_time = (time_now - history_score->last_update_time).count() * history_decay_factor;
-			history_score->score -= history_score_decay_over_time;
-			
-			if(history_score->score < 0) history_score->score = 0;
-			
-			history_score->last_update_time = time_now;
-			
-			double hardware_score = (*node_iterator)->get_clients_count();	// number of running servers (connected clients)
-			
-			double distance_score = get_distance(client, (*node_iterator));	// distance between node and client
-			
-			double network_score = 0;	// number of connections crossing this node (not necessary directly connected)
-			
-			for(auto client_iterator = clients.begin(); client_iterator != clients.end(); ++client_iterator)
+			if((*node_iterator)->get_application_id() == client->get_application_id())	// same application id
 			{
-				if((*client_iterator)->get_node() != nullptr)		// client is sending data
-				{
-					if((*client_iterator)->get_node() == (*node_iterator))	// client connected directly to node
+
+
+					log_file << "node: " << (*node_iterator)->get_name() <<"  " << "poa"<< (*poa_iterator)->get_poa_name() << "Zone _Poa" << (*poa_iterator)->get_zone_of_poa() << "Zone_Client"
+							<< client->get_location_zone() <<endl;//new changes1
+			
+					History_score * history_score = get_or_create_history_score(client, (*node_iterator));		// history of disconnects
+			
+					// apply decay over time to history score
+					double history_score_decay_over_time = (time_now - history_score->last_update_time).count() * history_decay_factor;
+					history_score->score -= history_score_decay_over_time;
+			
+					if(history_score->score < 0) history_score->score = 0;
+			
+					history_score->last_update_time = time_now;
+			
+					double hardware_score = (*node_iterator)->get_clients_count() / (*node_iterator)->get_application_limit();	// number of running servers (connected clients) relative to the max number of connected clients
+			
+					double distance_score = get_distance(client, (*node_iterator));	// distance between node and client
+			
+					double network_score = 0;	// number of connections crossing this node (not necessary directly connected)
+			
+					for(auto client_iterator = clients.begin(); client_iterator != clients.end(); ++client_iterator)
 					{
-						network_score++;
-					}
-					else if((*client_iterator)->get_location_point_of_access().compare(client->get_location_point_of_access()) == 0) // clinet in the same point of access as the client to be evaluated
-					{
-						network_score++;
-					}
-					else if((*node_iterator)->get_location_point_of_access() == "null") 	// node is a zone node
-					{
-						if((*client_iterator)->get_location_zone().compare((*node_iterator)->get_location_zone()) == 0)	// client in same zone
+						if((*client_iterator)->get_node() != nullptr)		// client is sending data
 						{
-							if(get_distance((*client_iterator), (*client_iterator)->get_node()) > 1)	// client connected to a node outside of its point of access (thus crossing the zone)
+							if((*client_iterator)->get_node() == (*node_iterator))	// client connected directly to node
 							{
 								network_score++;
 							}
-						}
-						else // client not in same zone
-						{
-							if((*client_iterator)->get_node()->get_location_zone().compare((*node_iterator)->get_location_zone()) == 0) // the node which the client is connected to is in the same zone as the node to be evaluated
+							else if((*client_iterator)->get_location_point_of_access().compare(client->get_location_point_of_access()) == 0) // clinet in the same point of access as the client to be evaluated
 							{
 								network_score++;
 							}
+							else if((*node_iterator)->get_location_point_of_access() == "null") 	// node is a zone node
+							{
+								if((*client_iterator)->get_location_zone().compare((*node_iterator)->get_location_zone()) == 0)	// client in same zone
+								{
+									if(get_distance((*client_iterator), (*client_iterator)->get_node()) > 1)	// client connected to a node outside of its point of access (thus crossing the zone)
+									{
+										network_score++;
+									}
+								}
+								else // client not in same zone
+								{
+									if((*client_iterator)->get_node()->get_location_zone().compare((*node_iterator)->get_location_zone()) == 0) // the node which the client is connected to is in the same zone as the node to be evaluated
+									{
+										network_score++;
+									}
+								}
+							}
+							else 	// node is a point of access node
+							{
+								if((*client_iterator)->get_location_point_of_access().compare((*node_iterator)->get_location_point_of_access()) == 0)	// client in same point of access
+								{
+									network_score++;
+								}
+							}
 						}
 					}
-					else 	// node is a point of access node
-					{
-						if((*client_iterator)->get_location_point_of_access().compare((*node_iterator)->get_location_point_of_access()) == 0)	// client in same point of access
-						{
-							network_score++;
-						}
-					}
-				}
+			
+					score = history_score_factor * history_score->score
+						+ hardware_score_factor * hardware_score
+						+ network_score_factor * network_score
+						+ distance_score_factor * distance_score;
+			
+				log_file << "history_score: " << history_score->score
+						<< ", hardware_score: " << hardware_score
+						<< ", network_score: " << network_score
+						<< ", distance_score: " << distance_score
+						<< ", score: " << score << endl;
+			
+				score_entry.score = score;
+			
+				score_entry.node = (*node_iterator);
+				
+				score_entry.poa = (*poa_iterator);
+			
+				scores_list.push_back(score_entry);
+
 			}
-			
-			score = history_score_factor * history_score->score
-					+ hardware_score_factor * hardware_score
-					+ network_score_factor * network_score
-					+ distance_score_factor * distance_score;
-			
-			log_file << "history_score: " << history_score->score
-					 << ", hardware_score: " << hardware_score
-					 << ", network_score: " << network_score
-					 << ", distance_score: " << distance_score
-					 << ", score: " << score << endl;
-			
-			score_entry.score = score;
-			
-			score_entry.node = (*node_iterator);
-			
-			scores_list.push_back(score_entry);
 		}
+
 	}
 	
 	return scores_list;
+
+
 }
 
-Node * select_node(vector<Node_with_score> scores_list)
+
+Node_with_score select_node(vector<Node_with_score> scores_list)//(new change)
 {
-	Node_with_score selected_score;
+	Node_with_score selected_score ;
+	
 	selected_score.node = nullptr;
+	selected_score.poa = nullptr;
 	selected_score.score = -numeric_limits<double>::max();
 	
 	for(auto score_entry_iterator = scores_list.begin(); score_entry_iterator != scores_list.end(); ++score_entry_iterator)
 	{
-		if(selected_score.score < score_entry_iterator->score)
+		if(score_entry_iterator->node->is_full() == false || no_limit == true)// use limit only if no_limit is false
 		{
-			selected_score = *score_entry_iterator;
-			//cout << "node: " << (*score_entry_iterator).node->get_name() << " was selected with score: " << (*score_entry_iterator).score << endl;
+			if(selected_score.score < score_entry_iterator->score)
+			{
+				selected_score = *score_entry_iterator;
+			}
+
 		}
 		//cout << "node: " << (*score_entry_iterator).node->get_name() << ", score: " << (*score_entry_iterator).score << endl;
 	}
 	
-	return selected_score.node;
+	//return selected_score.node; (new change)
+	return selected_score;//(new change)
 }
 
 Server * get_or_create_server(string server_name, uint16_t application_id, string point_of_access, string zone)
@@ -733,7 +940,7 @@ Server * get_or_create_server(string server_name, uint16_t application_id, strin
 
 Client * get_or_create_client(string client_name, uint16_t application_id, string user_equipment_name)
 {
-	for(auto client_iterator = clients.begin(); client_iterator != clients.end(); ++client_iterator)
+	for(auto client_iterator = clients.begin(); client_iterator != clients.end(); ++client_iterator)//b: from where is
 	{
 		if((*client_iterator)->get_name().compare(client_name) == 0)	// client already exists
 		{
@@ -807,10 +1014,11 @@ void move_client(Client * client, string point_of_access)
 	try
 	{
 		string json_string = "{  \"name\": \"name\",  \"type\": \"MOBILITY\",  \"eventMobility\": {    \"elementName\": \"" + client->get_location_user_equipment() + "\",    \"dest\": \"" + point_of_access + "\"  }}";
+		// b:create json value after parsing
 		json::value json_value = json::value::parse(json_string);
-		http_client http_client_object(U("http://127.0.0.1:30000"));
-		uri_builder builder(U("/v1/events/MOBILITY"));
-		http_response response = http_client_object.request(methods::POST, builder.to_string(), json_value).get();
+		http_client http_client_object(U("http://127.0.0.1:30000"));//b:create an http client
+		uri_builder builder(U("/v1/events/MOBILITY"));//b:what is done here ?
+		http_response response = http_client_object.request(methods::POST, builder.to_string(), json_value).get();//b:what is done here ?
 		
 		//cout << "Received response status code: " << response.status_code() << endl;
 		
@@ -851,11 +1059,11 @@ int get_distance(Client * client, Server * server)
 	{
 		if(server->get_location_point_of_access().compare("null") == 0)	// edge server
 		{
-			return 4;
+			return 9;
 		}
 		else	// fog server
 		{
-			return 5;
+			return 10;
 		}
 	}	
 }
@@ -872,7 +1080,7 @@ int get_distance(Client * client, Node * node)
 		{
 			return 2;
 		}
-		else	// fog node
+		else	// fog node //b: connected to other PoA
 		{
 			return 3;
 		}
@@ -904,7 +1112,7 @@ void simulation_thread(time_point<system_clock, milliseconds> simulation_start_t
 		{
 			auto current_event_time = last_event_time + (*event_iterator).duration;
 			
-			this_thread::sleep_until(current_event_time);
+			this_thread::sleep_until(current_event_time);// b:what is done here ??
 			
 			last_event_time = current_event_time;
 			
@@ -929,6 +1137,7 @@ void simulation_thread(time_point<system_clock, milliseconds> simulation_start_t
 				else
 				{
 					move_client(client, (*event_iterator).point_of_access_name);
+					cout << (*event_iterator).client_name << " moved to " << (*event_iterator).point_of_access_name << endl;
 				}
 				
 				break;
@@ -937,5 +1146,27 @@ void simulation_thread(time_point<system_clock, milliseconds> simulation_start_t
 				cout << (*event_iterator).type << " Type not defined" << endl;
 			}
 		}
+	}
+}
+
+void clients_number_writer_thread()
+{
+	while(true)
+	{
+		time_point<system_clock, milliseconds> time_now = time_point_cast<milliseconds>(system_clock::now());
+		//b:why is this required
+		write_number_of_connected_clients_to_output_file(time_now);
+		time_now = time_now + milliseconds(1000);
+		this_thread::sleep_until(time_now);
+	}
+}
+
+void servers_reply_thread(int port)
+{
+	ServerTCP server_reply_TCP;
+	while(true)
+	{
+		server_reply_TCP.listen_on(port, 120000, 2000);// b: what are the arguments(max que may be one )?
+		server_reply_TCP.disconnect();
 	}
 }
